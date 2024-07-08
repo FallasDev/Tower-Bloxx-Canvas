@@ -1,0 +1,290 @@
+<title>Tower Bloxx by SebasDev</title>
+
+<style>
+    body {
+        background-color: cadetblue;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    canvas {
+        margin: auto;
+        display: block;
+        background-color: beige;
+        height: 100%;
+    }
+
+    #modal {
+        position: absolute;
+        inset: 30% 44%;
+        background-color: brown;
+        height: fit-content;
+        width: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        flex-direction: column;
+        text-align: center;
+        padding: 10px;
+    }
+
+    #modal,
+    #modal2 h3 {
+        color: white;
+    }
+
+    #modal img {
+        width: 100px;
+    }
+
+    #modal button {
+        color: white;
+        padding: 4px;
+        width: 100px;
+        border: none;
+        border-radius: 10px;
+        background-color: rgb(205, 77, 156);
+        cursor: pointer;
+    }
+
+    #modal2 {
+        position: absolute;
+        inset: 30% 44%;
+        background-color: rgb(42, 140, 165);
+        height: fit-content;
+        width: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        flex-direction: column;
+        text-align: center;
+        padding: 10px;
+    }
+
+    #modal2 img {
+        width: 100px;
+    }
+
+    #modal2 button {
+        color: white;
+        padding: 6px;
+        width: 110px;
+        border: none;
+        border-radius: 10px;
+        background-color: rgb(45, 88, 196);
+        cursor: pointer;
+    }
+    h4{
+        position: absolute;
+        top: 10%;
+        right: 10%;
+        color: black;
+        font-size: 3em;
+    }
+</style>
+<div class="hidden" id="modal">
+    <h3>Perdiste :(</h3>
+    <img src="https://charatoon.com/photo/1734.png" alt="">
+    <button id="btn-reload">Reintentar</button>
+</div>
+<div id="modal2">
+    <h3>Ganaste :)</h3>
+    <img src="https://media.istockphoto.com/id/1050787688/es/vector/tierra-linda-de-la-historieta.jpg?s=612x612&w=0&k=20&c=1BTLzH3pK2WFcoM0DRcbozHZIzYMz3m43a2EmFWCxH4="
+        alt="">
+    <button id="btn-reload">Jugar de nuevo</button>
+</div>
+<h4 id="points">15/0</h4>
+<canvas></canvas>
+
+<script>
+    const canvas = document.querySelector("canvas")
+    const ctx = canvas.getContext("2d")
+    const modal = document.getElementById("modal")
+    const modal2 = document.getElementById("modal2")
+    const btnReload = document.getElementById("btn-reload")
+    const points = document.getElementById("points")
+
+    canvas.width = 120
+    modal.style.display = "none"
+    modal2.style.display = "none"
+    const colors = ["red", "blue", "green","purple", "orange"];
+
+
+    //Variables Torre
+    const TOWER_WIDTH = 5
+    const TOWER_HEIGHT = 5
+    //Padding de los costados de la torre
+    const PADDING = 20
+    const floors = [getDefaultFloor()]
+    let level = 1
+
+    //Banderas
+    let isIncrementLevel = true
+    let isLost = false
+    let isWin = false
+    let isChangeColor = true
+
+    function drawFloor() {
+        ctx.beginPath()
+        floors.map(function (item) {
+            ctx.fillRect(item.x, item.y, TOWER_WIDTH, TOWER_HEIGHT)
+            if (isChangeColor) {
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]
+                isChangeColor = true
+            }
+            ctx.fill()
+        })
+        ctx.closePath()
+    }
+
+    function getDefaultFloor() {
+        return defaultFloor = {
+            x: 50,
+            y: 0,
+            dy: 1,
+            dx: 0.5,
+            direction: 1,
+            spacePressed: false,
+        }
+    }
+
+    function drawPoints() { 
+        points.textContent = `${level}/15`
+    }
+
+    function moveTower() {
+        const currentFloor = getCurrentFloor()
+        if (currentFloor.direction === 1) {
+            currentFloor.x += currentFloor.dx
+            if (currentFloor.x === (canvas.width - TOWER_WIDTH - PADDING)) {
+                currentFloor.direction = 2
+            }
+        }
+        if (currentFloor.direction === 2) {
+            currentFloor.x -= currentFloor.dx
+            if (currentFloor.x === PADDING) {
+                currentFloor.direction = 1
+            }
+        }
+    }
+
+    function getCurrentFloor() {
+        return floors[floors.length - 1]
+    }
+
+    function getLastFloor() {
+        return floors[floors.length - 2]
+    }
+
+    function checkCollison() {
+        const currentFloor = getCurrentFloor()
+        const lastFloor = getLastFloor()
+        if (currentFloor.y >= (canvas.height - (TOWER_HEIGHT * getLevel(currentFloor, lastFloor)))) {
+            if (getLevel(currentFloor, lastFloor) === 0) {
+                isLost = true
+                return
+            }
+            checkGanador()
+            const defaultFloorVelocity = incrementVelocity(getDefaultFloor())
+            floors.push(defaultFloorVelocity)
+            isIncrementLevel = true
+            isChangeColor = false
+        }
+    }
+
+    function getLevel(currentFloor, lastFloor) {
+        if (!lastFloor) {
+            return 1
+        }
+        //Minimo -> Maximo Actual
+        //Maximo -> Minimo Actual
+        if ((currentFloor.x + TOWER_WIDTH) >= lastFloor.x && ((lastFloor.x + TOWER_WIDTH) >= currentFloor.x)) {
+            return level
+        }
+
+        return 0
+    }
+
+    function initEvents() {
+        const currentFloor = getCurrentFloor()
+        document.addEventListener("keydown", keyDownHandler)
+
+        function keyDownHandler(e) {
+            currentFloor.spacePressed = true
+        }
+    }
+
+    function updateLevel(currentFloor, lastFloor) {
+        if (!lastFloor) {
+            return
+        }
+        if ((currentFloor.x + TOWER_WIDTH) >= lastFloor.x && ((lastFloor.x + TOWER_WIDTH) >= currentFloor.x) && isIncrementLevel) {
+            level++
+            isIncrementLevel = false
+            return
+        }
+    }
+
+    function fallTower() {
+        const currentFloor = getCurrentFloor()
+        const lastFloor = getLastFloor()
+        if (currentFloor.spacePressed) {
+            currentFloor.dx = 0
+            currentFloor.y += currentFloor.dy
+            updateLevel(currentFloor, lastFloor)
+        }
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
+
+    function reload() {
+        location.reload()
+    }
+
+    function checkGanador() {
+        if (level === 15) {
+            isWin = true
+        }
+    }
+
+    function incrementVelocity(defaultFloor) {
+
+        if (level >= 10) {
+            defaultFloor.dx += 1.5
+        }
+
+        if (level >= 5) {
+            defaultFloor.dx += 0.5
+            console.log(defaultFloor);
+        } 
+        return defaultFloor
+    }
+
+    function draw() {
+        clearCanvas()
+        //Dibujar
+        drawFloor()
+        drawPoints()
+        //Colisiones y movimientos
+
+        initEvents()
+        moveTower()
+        checkCollison()
+        fallTower()
+
+        if (!isLost && !isWin) {
+            window.requestAnimationFrame(draw)
+        } else if (isWin) {
+            modal2.style.display = "flex"
+            document.addEventListener("click", reload)
+        } else {
+            modal.style.display = "flex"
+            document.addEventListener("click", reload)
+        }
+    }
+    draw()
+
+</script>
